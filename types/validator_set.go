@@ -323,7 +323,7 @@ func (vals *ValidatorSet) findProposer() *Validator {
 	return proposer
 }
 
-// Pocket Network's custom addition to tendermint selection
+// Viper Network's custom addition to tendermint selection
 func (vals *ValidatorSet) GetProposerRandomized(previousBlockHash []byte, upgradeHeight, height int64, lastCommit []byte, round uint64) *Validator {
 	roundBz := make([]byte, 8)
 	binary.LittleEndian.PutUint64(roundBz, round)

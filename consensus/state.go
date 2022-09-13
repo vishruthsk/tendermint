@@ -2031,7 +2031,7 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	return 0
 }
 
-// Pocket Network's function to get the previous block hash from the consensus state object
+// Viper Network's function to get the previous block hash from the consensus state object
 func (cs *State) GetPreviousBlockHash() []byte {
 	if cs.Height <= 2 {
 		return cs.Validators.Hash()
