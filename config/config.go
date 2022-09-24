@@ -247,7 +247,7 @@ func TestBaseConfig() BaseConfig {
 	cfg := DefaultBaseConfig()
 	cfg.chainID = "tendermint_test"
 	cfg.ProxyApp = "kvstore"
-	cfg.FastSyncMode = false
+	cfg.FastSyncMode = true
 	cfg.DBBackend = "memdb"
 	return cfg
 }
