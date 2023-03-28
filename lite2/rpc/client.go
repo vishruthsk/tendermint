@@ -60,6 +60,10 @@ func (c *Client) Status() (*ctypes.ResultStatus, error) {
 	return c.next.Status()
 }
 
+func (c *Client) ConsensusReactorStatus() (*ctypes.ResultConsensusReactorStatus, error) {
+	return c.next.ConsensusReactorStatus()
+}
+
 func (c *Client) ABCIInfo() (*ctypes.ResultABCIInfo, error) {
 	return c.next.ABCIInfo()
 }

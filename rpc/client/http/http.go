@@ -41,24 +41,24 @@ the example for more details.
 
 Example:
 
-		c, err := New("http://192.168.1.10:26657", "/websocket")
-		if err != nil {
-			// handle error
-		}
+	c, err := New("http://192.168.1.10:26657", "/websocket")
+	if err != nil {
+		// handle error
+	}
 
-		// call Start/Stop if you're subscribing to events
-		err = c.Start()
-		if err != nil {
-			// handle error
-		}
-		defer c.Stop()
+	// call Start/Stop if you're subscribing to events
+	err = c.Start()
+	if err != nil {
+		// handle error
+	}
+	defer c.Stop()
 
-		res, err := c.Status()
-		if err != nil {
-			// handle error
-		}
+	res, err := c.Status()
+	if err != nil {
+		// handle error
+	}
 
-		// handle result
+	// handle result
 */
 type HTTP struct {
 	remote string
@@ -154,7 +154,6 @@ func NewWithClient(remote, wsEndpoint string, client *http.Client) (*HTTP, error
 		baseRPCClient: &baseRPCClient{caller: rc},
 		WSEvents:      wsEvents,
 	}
-
 	return httpClient, nil
 }
 
@@ -205,6 +204,15 @@ func (b *BatchHTTP) Count() int {
 
 //-----------------------------------------------------------------------------
 // baseRPCClient
+
+func (c *baseRPCClient) ConsensusReactorStatus() (*ctypes.ResultConsensusReactorStatus, error) {
+	result := new(ctypes.ResultConsensusReactorStatus)
+	_, err := c.caller.Call("consensus_reactor_status", map[string]interface{}{}, result)
+	if err != nil {
+		return nil, errors.Wrap(err, "ConsensusReactorStatus")
+	}
+	return result, nil
+}
 
 func (c *baseRPCClient) Status() (*ctypes.ResultStatus, error) {
 	result := new(ctypes.ResultStatus)
