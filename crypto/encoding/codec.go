@@ -7,7 +7,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	"github.com/tendermint/tendermint/libs/json"
-	pc "github.com/tendermint/tendermint/proto/crypto"
+	pc "github.com/tendermint/tendermint/proto/crypto/keys"
 )
 
 func init() {
