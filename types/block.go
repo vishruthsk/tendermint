@@ -15,7 +15,7 @@ import (
 	"github.com/tendermint/tendermint/libs/bits"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmmath "github.com/tendermint/tendermint/libs/math"
-	tmproto "github.com/tendermint/tendermint/proto/types/keys"
+	tmproto "github.com/tendermint/tendermint/proto/types"
 	tmversion "github.com/tendermint/tendermint/proto/version"
 	"github.com/tendermint/tendermint/version"
 )
