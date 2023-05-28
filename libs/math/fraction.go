@@ -6,10 +6,10 @@ import "fmt"
 // format.
 type Fraction struct {
 	// The portion of the denominator in the faction, e.g. 2 in 2/3.
-	Numerator uint64 `json:"numerator"`
+	Numerator int64 `json:"numerator"`
 	// The value by which the numerator is divided, e.g. 3 in 2/3. Must be
 	// positive.
-	Denominator uint64 `json:"denominator"`
+	Denominator int64 `json:"denominator"`
 }
 
 func (fr Fraction) String() string {
