@@ -151,7 +151,7 @@ func (m *PartSetHeader) GetHash() []byte {
 type Part struct {
 	Index uint32       `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
 	Bytes []byte       `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	Proof crypto.SimpleProof `protobuf:"bytes,3,opt,name=proof,proto3" json:"proof"`
+	Proof crypto.Proof `protobuf:"bytes,3,opt,name=proof,proto3" json:"proof"`
 }
 
 func (m *Part) Reset()         { *m = Part{} }
@@ -201,11 +201,11 @@ func (m *Part) GetBytes() []byte {
 	return nil
 }
 
-func (m *Part) GetProof() crypto.SimpleProof {
+func (m *Part) GetProof() crypto.Proof {
 	if m != nil {
 		return m.Proof
 	}
-	return crypto.SimpleProof{}
+	return crypto.Proof{}
 }
 
 // BlockID
@@ -971,7 +971,7 @@ func (m *BlockMeta) GetNumTxs() int64 {
 type TxProof struct {
 	RootHash []byte        `protobuf:"bytes,1,opt,name=root_hash,json=rootHash,proto3" json:"root_hash,omitempty"`
 	Data     []byte        `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Proof    *crypto.SimpleProof `protobuf:"bytes,3,opt,name=proof,proto3" json:"proof,omitempty"`
+	Proof    *crypto.Proof `protobuf:"bytes,3,opt,name=proof,proto3" json:"proof,omitempty"`
 }
 
 func (m *TxProof) Reset()         { *m = TxProof{} }
@@ -1021,7 +1021,7 @@ func (m *TxProof) GetData() []byte {
 	return nil
 }
 
-func (m *TxProof) GetProof() *crypto.SimpleProof {
+func (m *TxProof) GetProof() *crypto.Proof {
 	if m != nil {
 		return m.Proof
 	}
