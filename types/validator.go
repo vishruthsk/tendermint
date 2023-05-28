@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cometbft/cometbft/crypto"
+	"github.com/tendermint/tendermint/crypto"
 	ce "github.com/tendermint/tendermint/crypto/encoding"
 	cmtrand "github.com/tendermint/tendermint/libs/rand"
 	cmtproto "github.com/tendermint/tendermint/proto/types"

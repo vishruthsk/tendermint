@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cometbft/cometbft/crypto"
-	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	"github.com/tendermint/tendermint/crypto"
 	cmtbytes "github.com/tendermint/tendermint/libs/bytes"
 	protoio "github.com/tendermint/tendermint/libs/flowrate"
+	cmtproto "github.com/tendermint/tendermint/proto/types"
 )
 
 const (

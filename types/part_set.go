@@ -2,17 +2,16 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
-	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/libs/bits"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	tmproto "github.com/tendermint/tendermint/proto/types"
+	cmtbytes "github.com/tendermint/tendermint/libs/bytes"
+	cmtmath "github.com/tendermint/tendermint/libs/math"
+	cmtsync "github.com/tendermint/tendermint/libs/sync"
+	cmtproto "github.com/tendermint/tendermint/proto/types"
 )
 
 var (
@@ -21,49 +20,87 @@ var (
 )
 
 type Part struct {
-	Index int                `json:"index"`
-	Bytes tmbytes.HexBytes   `json:"bytes"`
-	Proof merkle.SimpleProof `json:"proof"`
+	Index uint32            `json:"index"`
+	Bytes cmtbytes.HexBytes `json:"bytes"`
+	Proof merkle.Proof      `json:"proof"`
 }
 
 // ValidateBasic performs basic validation.
 func (part *Part) ValidateBasic() error {
-	if part.Index < 0 {
-		return errors.New("negative Index")
-	}
-	if len(part.Bytes) > BlockPartSizeBytes {
-		return errors.Errorf("too big: %d bytes, max: %d", len(part.Bytes), BlockPartSizeBytes)
+	if len(part.Bytes) > int(BlockPartSizeBytes) {
+		return fmt.Errorf("too big: %d bytes, max: %d", len(part.Bytes), BlockPartSizeBytes)
 	}
 	if err := part.Proof.ValidateBasic(); err != nil {
-		return errors.Wrap(err, "wrong Proof")
+		return fmt.Errorf("wrong Proof: %w", err)
 	}
 	return nil
 }
 
+// String returns a string representation of Part.
+//
+// See StringIndented.
 func (part *Part) String() string {
 	return part.StringIndented("")
 }
 
+// StringIndented returns an indented Part.
+//
+// See merkle.Proof#StringIndented
 func (part *Part) StringIndented(indent string) string {
 	return fmt.Sprintf(`Part{#%v
 %s  Bytes: %X...
 %s  Proof: %v
 %s}`,
 		part.Index,
-		indent, tmbytes.Fingerprint(part.Bytes),
+		indent, cmtbytes.Fingerprint(part.Bytes),
 		indent, part.Proof.StringIndented(indent+"  "),
 		indent)
+}
+
+func (part *Part) ToProto() (*cmtproto.Part, error) {
+	if part == nil {
+		return nil, errors.New("nil part")
+	}
+	pb := new(cmtproto.Part)
+	proof := part.Proof.ToProto()
+
+	pb.Index = part.Index
+	pb.Bytes = part.Bytes
+	pb.Proof = *proof
+
+	return pb, nil
+}
+
+func PartFromProto(pb *cmtproto.Part) (*Part, error) {
+	if pb == nil {
+		return nil, errors.New("nil part")
+	}
+
+	part := new(Part)
+	proof, err := merkle.ProofFromProto(&pb.Proof)
+	if err != nil {
+		return nil, err
+	}
+	part.Index = pb.Index
+	part.Bytes = pb.Bytes
+	part.Proof = *proof
+
+	return part, part.ValidateBasic()
 }
 
 //-------------------------------------
 
 type PartSetHeader struct {
-	Total int              `json:"total"`
-	Hash  tmbytes.HexBytes `json:"hash"`
+	Total uint32            `json:"total"`
+	Hash  cmtbytes.HexBytes `json:"hash"`
 }
 
+// String returns a string representation of PartSetHeader.
+//
+// 1. total number of parts
+// 2. first 6 bytes of the hash
 func (psh PartSetHeader) String() string {
-	return fmt.Sprintf("%v:%X", psh.Total, tmbytes.Fingerprint(psh.Hash))
+	return fmt.Sprintf("%v:%X", psh.Total, cmtbytes.Fingerprint(psh.Hash))
 }
 
 func (psh PartSetHeader) IsZero() bool {
@@ -76,35 +113,32 @@ func (psh PartSetHeader) Equals(other PartSetHeader) bool {
 
 // ValidateBasic performs basic validation.
 func (psh PartSetHeader) ValidateBasic() error {
-	if psh.Total < 0 {
-		return errors.New("negative Total")
-	}
-	// Hash can be empty in case of POLBlockID.PartsHeader in Proposal.
+	// Hash can be empty in case of POLBlockID.PartSetHeader in Proposal.
 	if err := ValidateHash(psh.Hash); err != nil {
-		return errors.Wrap(err, "Wrong Hash")
+		return fmt.Errorf("wrong Hash: %w", err)
 	}
 	return nil
 }
 
-// ToProto converts BloPartSetHeaderckID to protobuf
-func (psh *PartSetHeader) ToProto() tmproto.PartSetHeader {
+// ToProto converts PartSetHeader to protobuf
+func (psh *PartSetHeader) ToProto() cmtproto.PartSetHeader {
 	if psh == nil {
-		return tmproto.PartSetHeader{}
+		return cmtproto.PartSetHeader{}
 	}
 
-	return tmproto.PartSetHeader{
-		Total: int64(psh.Total),
+	return cmtproto.PartSetHeader{
+		Total: psh.Total,
 		Hash:  psh.Hash,
 	}
 }
 
 // FromProto sets a protobuf PartSetHeader to the given pointer
-func PartSetHeaderFromProto(ppsh *tmproto.PartSetHeader) (*PartSetHeader, error) {
+func PartSetHeaderFromProto(ppsh *cmtproto.PartSetHeader) (*PartSetHeader, error) {
 	if ppsh == nil {
 		return nil, errors.New("nil PartSetHeader")
 	}
 	psh := new(PartSetHeader)
-	psh.Total = int(ppsh.Total)
+	psh.Total = ppsh.Total
 	psh.Hash = ppsh.Hash
 
 	return psh, psh.ValidateBasic()
@@ -113,35 +147,39 @@ func PartSetHeaderFromProto(ppsh *tmproto.PartSetHeader) (*PartSetHeader, error)
 //-------------------------------------
 
 type PartSet struct {
-	total int
+	total uint32
 	hash  []byte
 
-	mtx           sync.Mutex
+	mtx           cmtsync.Mutex
 	parts         []*Part
 	partsBitArray *bits.BitArray
-	count         int
+	count         uint32
+	// a count of the total size (in bytes). Used to ensure that the
+	// part set doesn't exceed the maximum block bytes
+	byteSize int64
 }
 
 // Returns an immutable, full PartSet from the data bytes.
 // The data bytes are split into "partSize" chunks, and merkle tree computed.
-func NewPartSetFromData(data []byte, partSize int) *PartSet {
+// CONTRACT: partSize is greater than zero.
+func NewPartSetFromData(data []byte, partSize uint32) *PartSet {
 	// divide data into 4kb parts.
-	total := (len(data) + partSize - 1) / partSize
+	total := (uint32(len(data)) + partSize - 1) / partSize
 	parts := make([]*Part, total)
 	partsBytes := make([][]byte, total)
-	partsBitArray := bits.NewBitArray(total)
-	for i := 0; i < total; i++ {
+	partsBitArray := bits.NewBitArray(int(total))
+	for i := uint32(0); i < total; i++ {
 		part := &Part{
 			Index: i,
-			Bytes: data[i*partSize : tmmath.MinInt(len(data), (i+1)*partSize)],
+			Bytes: data[i*partSize : cmtmath.MinInt(len(data), int((i+1)*partSize))],
 		}
 		parts[i] = part
 		partsBytes[i] = part.Bytes
-		partsBitArray.SetIndex(i, true)
+		partsBitArray.SetIndex(int(i), true)
 	}
 	// Compute merkle proofs
-	root, proofs := merkle.SimpleProofsFromByteSlices(partsBytes)
-	for i := 0; i < total; i++ {
+	root, proofs := merkle.ProofsFromByteSlices(partsBytes)
+	for i := uint32(0); i < total; i++ {
 		parts[i].Proof = *proofs[i]
 	}
 	return &PartSet{
@@ -150,6 +188,7 @@ func NewPartSetFromData(data []byte, partSize int) *PartSet {
 		parts:         parts,
 		partsBitArray: partsBitArray,
 		count:         total,
+		byteSize:      int64(len(data)),
 	}
 }
 
@@ -159,8 +198,9 @@ func NewPartSetFromHeader(header PartSetHeader) *PartSet {
 		total:         header.Total,
 		hash:          header.Hash,
 		parts:         make([]*Part, header.Total),
-		partsBitArray: bits.NewBitArray(header.Total),
+		partsBitArray: bits.NewBitArray(int(header.Total)),
 		count:         0,
+		byteSize:      0,
 	}
 }
 
@@ -189,7 +229,7 @@ func (ps *PartSet) BitArray() *bits.BitArray {
 
 func (ps *PartSet) Hash() []byte {
 	if ps == nil {
-		return nil
+		return merkle.HashFromByteSlices(nil)
 	}
 	return ps.hash
 }
@@ -201,14 +241,21 @@ func (ps *PartSet) HashesTo(hash []byte) bool {
 	return bytes.Equal(ps.hash, hash)
 }
 
-func (ps *PartSet) Count() int {
+func (ps *PartSet) Count() uint32 {
 	if ps == nil {
 		return 0
 	}
 	return ps.count
 }
 
-func (ps *PartSet) Total() int {
+func (ps *PartSet) ByteSize() int64 {
+	if ps == nil {
+		return 0
+	}
+	return ps.byteSize
+}
+
+func (ps *PartSet) Total() uint32 {
 	if ps == nil {
 		return 0
 	}
@@ -239,8 +286,9 @@ func (ps *PartSet) AddPart(part *Part) (bool, error) {
 
 	// Add part
 	ps.parts[part.Index] = part
-	ps.partsBitArray.SetIndex(part.Index, true)
+	ps.partsBitArray.SetIndex(int(part.Index), true)
 	ps.count++
+	ps.byteSize += int64(len(part.Bytes))
 	return true, nil
 }
 
@@ -296,6 +344,9 @@ func (psr *PartSetReader) Read(p []byte) (n int, err error) {
 	return psr.Read(p)
 }
 
+// StringShort returns a short version of String.
+//
+// (Count of Total)
 func (ps *PartSet) StringShort() string {
 	if ps == nil {
 		return "nil-PartSet"
@@ -303,21 +354,4 @@ func (ps *PartSet) StringShort() string {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 	return fmt.Sprintf("(%v of %v)", ps.Count(), ps.Total())
-}
-
-func (ps *PartSet) MarshalJSON() ([]byte, error) {
-	if ps == nil {
-		return []byte("{}"), nil
-	}
-
-	ps.mtx.Lock()
-	defer ps.mtx.Unlock()
-
-	return cdc.MarshalJSON(struct {
-		CountTotal    string         `json:"count/total"`
-		PartsBitArray *bits.BitArray `json:"parts_bit_array"`
-	}{
-		fmt.Sprintf("%d/%d", ps.Count(), ps.Total()),
-		ps.partsBitArray,
-	})
 }

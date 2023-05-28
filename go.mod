@@ -11,7 +11,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.5.3
 	github.com/gorilla/websocket v1.4.2
 	github.com/libp2p/go-buffer-pool v0.0.2
 	github.com/magiconair/properties v1.8.1
@@ -23,13 +23,17 @@ require (
 	github.com/snikch/goodman v0.0.0-20171125024755-10e37e294daa
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.6.3
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tm-db v0.5.1
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
-	google.golang.org/grpc v1.28.1
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.9.0
+	google.golang.org/grpc v1.55.0
 )
 
-require github.com/gtank/merlin v0.1.1
+require (
+	github.com/cosmos/gogoproto v1.4.10
+	github.com/emicklei/proto v1.11.2
+	github.com/gtank/merlin v0.1.1
+)
